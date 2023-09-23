@@ -37,7 +37,7 @@ interface IUniswapV3SwapCallback {
     ) external;
 }
 
-contract UniswapV3V2Artbitrage is Owned, IUniswapV3SwapCallback {
+contract UniswapV3V2Arbitrage is Owned, IUniswapV3SwapCallback {
     IWETH internal constant WETH = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     uint160 internal constant MIN_SQRT_RATIO = 4295128739;
     uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
@@ -47,7 +47,7 @@ contract UniswapV3V2Artbitrage is Owned, IUniswapV3SwapCallback {
     constructor() Owned(msg.sender) {}
 
     function executeArbitrageIfWethIsTokenA(
-        address v2Pair,
+        address _v2Pair,
         address v3Pair,
         uint256 amountIn,
         uint256 percentageToPayToCoinbase
@@ -58,7 +58,7 @@ contract UniswapV3V2Artbitrage is Owned, IUniswapV3SwapCallback {
 
         // Swap on V3
         (, int256 tokenOut) = IUniswapV3Pool(v3Pair).swap(
-            v2Pair,
+            _v2Pair,
             true,
             int256(amountIn),
             MIN_SQRT_RATIO + 1,
@@ -67,7 +67,7 @@ contract UniswapV3V2Artbitrage is Owned, IUniswapV3SwapCallback {
 
         uint256 tokenOutExact = uint256(- tokenOut);
 
-        IUniswapV2Pair v2Pair = IUniswapV2Pair(v2Pair);
+        IUniswapV2Pair v2Pair = IUniswapV2Pair(_v2Pair);
         (uint256 v2Reserve0, uint256 v2Reserve1,) = v2Pair.getReserves();
         uint256 v2AmountOut = getAmountOut(tokenOutExact, v2Reserve1, v2Reserve0);
         v2Pair.swap(v2AmountOut, 0, address(this), "");
@@ -133,10 +133,12 @@ contract UniswapV3V2Artbitrage is Owned, IUniswapV3SwapCallback {
     pure
     returns (uint256 amountOut)
     {
-        uint256 amountInWithFee = amountIn * 997;
-        uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = reserveIn * 1000 + amountInWithFee;
-        amountOut = numerator / denominator;
+        assembly {
+            let amountInWithFee := mul(amountIn, 997)
+            let numerator := mul(amountInWithFee, reserveOut)
+            let denominator := add(mul(reserveIn, 1000), amountInWithFee)
+            amountOut := div(numerator, denominator)
+        }
     }
 
     function withdrawWETHToOwner() external onlyOwner {
