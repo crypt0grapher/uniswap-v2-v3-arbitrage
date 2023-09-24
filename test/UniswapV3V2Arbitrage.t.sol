@@ -6,18 +6,23 @@ import {UniswapV3V2Arbitrage} from "../src/UniswapV3V2Arbitrage.sol";
 
 interface IWETH {
     function deposit() external payable;
+
     function withdraw(uint256) external;
+
     function balanceOf(address) external view returns (uint256);
+
     function transfer(address, uint256) external returns (bool);
 }
 
 interface IERC20 {
     function balanceOf(address) external view returns (uint256);
+
     function approve(address, uint256) external returns (bool);
 }
 
 interface IUniswapV2Pair {
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
+
     function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
 }
 
@@ -64,6 +69,9 @@ contract MevExecutorTest is Test {
 
     UniswapV3V2Arbitrage arb;
 
+    string private checkpointLabel;
+    uint256 private checkpointGasLeft = 1; // Start the slot warm.
+
     function setUp() public {
         string memory MAINNET_RPC_URL = vm.envString("ETH_MAINNET_HTTP");
         mainnetFork = vm.createFork(MAINNET_RPC_URL, 17319257); // block where specific order is available
@@ -100,7 +108,9 @@ contract MevExecutorTest is Test {
         console.log("router balance after: %s", SC.balanceOf(address(V3)));
         console.log("amount out: %s", amount_out);
 
+        startMeasuringGas("Execute Arb");
         arb.executeArbitrageIfWethIsTokenA(address(V2), address(V3), ARB_AMOUNT, 0);
+        stopMeasuringGas();
         console.log("ARB BALANCE BEFORE: %s", WETH.balanceOf(address(arb)));
 
     }
@@ -114,4 +124,18 @@ contract MevExecutorTest is Test {
         .checked_write(amt);
     }
 
+    function startMeasuringGas(string memory label) internal {
+        checkpointLabel = label;
+
+        checkpointGasLeft = gasleft();
+    }
+
+    function stopMeasuringGas() internal {
+        uint256 checkpointGasLeft2 = gasleft();
+
+        // Subtract 100 to account for the warm SLOAD in startMeasuringGas.
+        uint256 gasDelta = checkpointGasLeft - checkpointGasLeft2 - 100;
+
+        emit log_named_uint(string(abi.encodePacked(checkpointLabel, " Gas")), gasDelta);
+    }
 }
