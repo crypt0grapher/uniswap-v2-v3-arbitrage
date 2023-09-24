@@ -23,13 +23,16 @@ contract MevExecutorTest is Test {
 //        assertEq(address(sender).balance, 1 ether);
 //    }
 
+    // in 0xd3d2E2692501A5c9Ca623199D38826e513033a17 weth is tokenB
+    uint size = 1 ether;
+
     function test_Swap() public {
-        arb.executeArbitrageIfWethIsTokenA(
-            //Uniswap ETH/USDT LP (UNI-V2)
-            0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852,
-            //UniswapV3 ETH/USDT LP (UNI-V3)
-            0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8,
-            1 ether,
+        arb.executeArbitrageIfWethIsTokenB(
+        //Uniswap UNI/ETH LP (UNI-V2)
+            0xd3d2E2692501A5c9Ca623199D38826e513033a17,
+            //UniswapV3 UNI/ETH LP (UNI-V3)
+            0x1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801,
+            size,
             0
         );
     }
@@ -38,4 +41,6 @@ contract MevExecutorTest is Test {
 //        counter.setNumber(x);
 //        assertEq(counter.number(), x);
 //    }
+
+    receive() external payable {}
 }

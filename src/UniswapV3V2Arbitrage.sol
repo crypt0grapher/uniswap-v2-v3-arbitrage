@@ -47,7 +47,7 @@ contract UniswapV3V2Arbitrage is Owned, IUniswapV3SwapCallback {
     constructor() Owned(msg.sender) {}
 
     function executeArbitrageIfWethIsTokenA(
-        address _v2Pair,
+        address v2Pair,
         address v3Pair,
         uint256 amountIn,
         uint256 percentageToPayToCoinbase
@@ -58,7 +58,7 @@ contract UniswapV3V2Arbitrage is Owned, IUniswapV3SwapCallback {
 
         // Swap on V3
         (, int256 tokenOut) = IUniswapV3Pool(v3Pair).swap(
-            _v2Pair,
+            v2Pair,
             true,
             int256(amountIn),
             MIN_SQRT_RATIO + 1,
@@ -67,7 +67,7 @@ contract UniswapV3V2Arbitrage is Owned, IUniswapV3SwapCallback {
 
         uint256 tokenOutExact = uint256(- tokenOut);
 
-        IUniswapV2Pair v2Pair = IUniswapV2Pair(_v2Pair);
+        IUniswapV2Pair v2Pair = IUniswapV2Pair(v2Pair);
         (uint256 v2Reserve0, uint256 v2Reserve1,) = v2Pair.getReserves();
         uint256 v2AmountOut = getAmountOut(tokenOutExact, v2Reserve1, v2Reserve0);
         v2Pair.swap(v2AmountOut, 0, address(this), "");
